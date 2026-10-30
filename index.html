@@ -41,10 +41,11 @@
       user-select: none;
     }
 
+    /* Standard 40-cell classic 11x11 Monopoly Grid */
     .monopoly-board {
       display: grid;
-      grid-template-columns: 13.5% repeat(9, 1fr) 13.5%;
-      grid-template-rows: 13.5% repeat(9, 1fr) 13.5%;
+      grid-template-columns: 13% repeat(9, 1fr) 13%;
+      grid-template-rows: 13% repeat(9, 1fr) 13%;
       aspect-ratio: 1 / 1;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
     }
@@ -58,15 +59,19 @@
     .cell {
       position: relative;
       background-color: #f8fafc;
-      border: 1px solid #94a3b8;
+      border: 1px solid #64748b;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.65rem;
+      font-size: 0.55rem;
       font-weight: 700;
       overflow: hidden;
       transition: all 0.2s ease;
+    }
+
+    @media (min-width: 640px) {
+      .cell { font-size: 0.65rem; }
     }
 
     .cell:hover {
@@ -74,17 +79,20 @@
       cursor: pointer;
     }
 
-    .color-bar-top { width: 100%; height: 22%; border-bottom: 1px solid #64748b; }
+    .color-bar-top { width: 100%; height: 20%; border-bottom: 1px solid #475569; }
+    .color-bar-bottom { width: 100%; height: 20%; border-top: 1px solid #475569; }
+    .color-bar-left { width: 20%; height: 100%; border-right: 1px solid #475569; }
+    .color-bar-right { width: 20%; height: 100%; border-left: 1px solid #475569; }
 
     .token {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       border: 2px solid white;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 9px;
+      font-size: 8px;
       color: white;
       box-shadow: 0 2px 4px rgba(0,0,0,0.6);
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -98,8 +106,8 @@
     .house-badge {
       background: #15803d;
       color: white;
-      font-size: 9px;
-      padding: 1px 4px;
+      font-size: 8px;
+      padding: 1px 3px;
       border-radius: 3px;
       box-shadow: 0 1px 2px rgba(0,0,0,0.4);
     }
@@ -109,9 +117,6 @@
       50% { box-shadow: 0 0 0 8px rgba(217, 119, 6, 0); }
     }
     .active-player-card { animation: pulse-gold 2s infinite; }
-
-    .dice-rolling { animation: spin 0.4s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body class="min-h-screen text-slate-800 flex flex-col justify-between overflow-x-hidden">
@@ -140,17 +145,17 @@
 
     <!-- BOARD (8 Cols) -->
     <div class="lg:col-span-8 flex justify-center items-center">
-      <div id="board" class="monopoly-board w-full max-w-[680px] bg-slate-300 rounded-xl overflow-hidden border-4 border-slate-950 relative">
+      <div id="board" class="monopoly-board w-full max-w-[720px] bg-slate-300 rounded-xl overflow-hidden border-4 border-slate-950 relative">
         
         <!-- BOARD CENTER -->
         <div class="board-center p-3 sm:p-4 flex flex-col justify-between items-center text-center relative overflow-hidden">
           <div class="absolute inset-0 opacity-10 pointer-events-none flex items-center justify-center">
-            <i class="fa-solid fa-industry text-[180px] text-amber-500"></i>
+            <i class="fa-solid fa-industry text-[200px] text-amber-500"></i>
           </div>
 
           <div class="z-10 mt-1">
             <h2 class="text-xl sm:text-2xl font-black text-amber-500 tracking-wider font-serif">RUDA ŚLĄSKA</h2>
-            <p class="text-[11px] text-slate-300">Szczynść Boże! Buduj familoki online.</p>
+            <p class="text-[10px] sm:text-xs text-slate-300">Gra Wieloosobowa Online | 40 Pola Monopoly</p>
           </div>
 
           <!-- CENTER DICE & CONTROLS -->
@@ -180,8 +185,8 @@
           </div>
 
           <div class="z-10 text-[10px] text-slate-400 mb-1">
-            <span class="inline-block bg-slate-900/80 px-2.5 py-1 rounded-full border border-slate-700">
-              <i class="fa-solid fa-shield-halved text-emerald-400 mr-1"></i> Nikt nie może podkupić Twojego pola bez Twojej zgody!
+            <span class="inline-block bg-slate-900/80 px-2 py-0.5 rounded-full border border-slate-700">
+              <i class="fa-solid fa-shield-halved text-emerald-400 mr-1"></i> Bezpieczny handel online i zakaz podkupywania bez zgody.
             </span>
           </div>
         </div>
@@ -417,7 +422,6 @@
     const db = getFirestore(app);
     const auth = getAuth(app);
 
-    // Auth Initialization
     let currentUser = null;
     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
       signInWithCustomToken(auth, __initial_auth_token).then(userCred => currentUser = userCred.user).catch(() => signInAnonymously(auth).then(u => currentUser = u.user));
@@ -426,49 +430,63 @@
     }
 
     /* ==========================================================================
-       BOARD DEFINITION
+       FULL 40-FIELD MONOPOLY BOARD DEFINITION
        ========================================================================== */
 
     const DISTRICT_COLORS = {
-      ORZEGOW: '#8b5cf6', GODULA: '#3b82f6', CHEBZIE: '#06b6d4', WIREK: '#10b981',
-      HALEMBA: '#eab308', BYKOWINA: '#f97316', KOCHLOWICE: '#ef4444', BIELSZOWICE: '#ec4899', SPECIAL: '#64748b'
+      KOCHLOWICE: '#78350f',  // Brązowe
+      ORZEGOW: '#38bdf8',     // Jasnoniebieskie
+      BYKOWINA: '#f472b6',    // Różowe
+      BIELSZOWICE: '#fb923c', // Pomarańczowe
+      HALEMBA: '#ef4444',     // Czerwone
+      WIREK: '#eab308',       // Żółte
+      GODULA: '#22c55e',      // Zielone
+      NOWY_BYTOM: '#1d4ed8',  // Ciemnoniebieskie
+      TRANSPORT: '#64748b',   // Dworce/Transport
+      MEDIA: '#0284c7'        // Media/Zakłady
     };
 
     const BOARD_FIELDS = [
-      { id: 0, name: "START (Dworzec PKP)", type: "start", price: 0, rent: 0 },
-      { id: 1, name: "Orzegów - Kolonia Karol", type: "property", district: "Orzegów", color: DISTRICT_COLORS.ORZEGOW, price: 60, rent: 10, housePrice: 50 },
-      { id: 2, name: "Śląskie Trafunki", type: "card", price: 0, rent: 0 },
-      { id: 3, name: "Orzegów - Park Młodzieży", type: "property", district: "Orzegów", color: DISTRICT_COLORS.ORZEGOW, price: 80, rent: 12, housePrice: 50 },
-      { id: 4, name: "Podatek Miejski (-150 PLN)", type: "tax", amount: 150 },
-      { id: 5, name: "Dworzec Chebzie (Biblioteka)", type: "station", district: "Transport", color: DISTRICT_COLORS.SPECIAL, price: 200, rent: 25 },
-      { id: 6, name: "Godula - Plac Niepodległości", type: "property", district: "Godula", color: DISTRICT_COLORS.GODULA, price: 100, rent: 15, housePrice: 50 },
-      { id: 7, name: "Śląskie Trafunki", type: "card", price: 0, rent: 0 },
-      { id: 8, name: "Godula - Szpital Miejski", type: "property", district: "Godula", color: DISTRICT_COLORS.GODULA, price: 120, rent: 18, housePrice: 50 },
-      { id: 9, name: "Areszt w Chebziu", type: "jail", price: 0, rent: 0 },
-      { id: 10, name: "Chebzie - Pętla Tramwajowa", type: "property", district: "Chebzie", color: DISTRICT_COLORS.CHEBZIE, price: 140, rent: 22, housePrice: 100 },
-      { id: 11, name: "Elektrownia Mikołaj", type: "utility", district: "Media", color: DISTRICT_COLORS.SPECIAL, price: 150, rent: 20 },
-      { id: 12, name: "Chebzie - Zabytkowa Stacja", type: "property", district: "Chebzie", color: DISTRICT_COLORS.CHEBZIE, price: 160, rent: 25, housePrice: 100 },
-      { id: 13, name: "Wirek - Osiedle Furtoka", type: "property", district: "Wirek", color: DISTRICT_COLORS.WIREK, price: 180, rent: 28, housePrice: 100 },
-      { id: 14, name: "Kopalnia Pokój", type: "station", district: "Transport", color: DISTRICT_COLORS.SPECIAL, price: 200, rent: 25 },
-      { id: 15, name: "Wirek - Centrum Plaza", type: "property", district: "Wirek", color: DISTRICT_COLORS.WIREK, price: 200, rent: 32, housePrice: 100 },
-      { id: 16, name: "Wirek - Ulica 1 Maja", type: "property", district: "Wirek", color: DISTRICT_COLORS.WIREK, price: 220, rent: 35, housePrice: 100 },
-      { id: 17, name: "Park Szymańskiego (Odpoczynek)", type: "parking", price: 0, rent: 0 },
-      { id: 18, name: "Halemba - Elektrownia", type: "property", district: "Halemba", color: DISTRICT_COLORS.HALEMBA, price: 240, rent: 38, housePrice: 150 },
-      { id: 19, name: "Śląskie Trafunki", type: "card", price: 0, rent: 0 },
-      { id: 20, name: "Halemba - Kościół MB", type: "property", district: "Halemba", color: DISTRICT_COLORS.HALEMBA, price: 260, rent: 42, housePrice: 150 },
-      { id: 21, name: "Halemba - Aquadrom", type: "property", district: "Halemba", color: DISTRICT_COLORS.HALEMBA, price: 280, rent: 45, housePrice: 150 },
-      { id: 22, name: "Wodociągi Miejskie", type: "utility", district: "Media", color: DISTRICT_COLORS.SPECIAL, price: 150, rent: 20 },
-      { id: 23, name: "Bykowina - Osiedle Ruch", type: "property", district: "Bykowina", color: DISTRICT_COLORS.BYKOWINA, price: 300, rent: 50, housePrice: 150 },
-      { id: 24, name: "Bykowina - Górnośląska", type: "property", district: "Bykowina", color: DISTRICT_COLORS.BYKOWINA, price: 320, rent: 55, housePrice: 150 },
-      { id: 25, name: "Idź do Aresztu!", type: "go_to_jail", price: 0, rent: 0 },
-      { id: 26, name: "Kochłowice - Rynek", type: "property", district: "Kochłowice", color: DISTRICT_COLORS.KOCHLOWICE, price: 350, rent: 60, housePrice: 200 },
-      { id: 27, name: "Kochłowice - Grodzisko", type: "property", district: "Kochłowice", color: DISTRICT_COLORS.KOCHLOWICE, price: 360, rent: 65, housePrice: 200 },
-      { id: 28, name: "Śląskie Trafunki", type: "card", price: 0, rent: 0 },
-      { id: 29, name: "Bielszowice - Osiedle Ficinus", type: "property", district: "Bielszowice", color: DISTRICT_COLORS.BIELSZOWICE, price: 380, rent: 70, housePrice: 200 },
-      { id: 30, name: "Podatek Ekologiczny (-100 PLN)", type: "tax", amount: 100 },
-      { id: 31, name: "Bielszowice - Kopalnia", type: "property", district: "Bielszowice", color: DISTRICT_COLORS.BIELSZOWICE, price: 400, rent: 80, housePrice: 200 },
-      { id: 32, name: "Nowy Bytom - Wieża Ciśnień", type: "property", district: "Nowy Bytom", color: '#a855f7', price: 420, rent: 90, housePrice: 200 },
-      { id: 33, name: "Nowy Bytom - Urząd Miasta", type: "property", district: "Nowy Bytom", color: '#a855f7', price: 450, rent: 100, housePrice: 200 }
+      { id: 0, name: "START", type: "start", price: 0, rent: 0 },
+      { id: 1, name: "Kochłowice - Rynek", type: "property", district: "Kochłowice", color: DISTRICT_COLORS.KOCHLOWICE, price: 60, rent: 2, housePrice: 50 },
+      { id: 2, name: "Kasa Zapomogowa", type: "card", price: 0, rent: 0 },
+      { id: 3, name: "Sanktuarium MB z Lourdes", type: "property", district: "Kochłowice", color: DISTRICT_COLORS.KOCHLOWICE, price: 60, rent: 4, housePrice: 50 },
+      { id: 4, name: "Podatek od Śmieci", type: "tax", amount: 200 },
+      { id: 5, name: "Linia Tramwajowa 9", type: "station", district: "Transport", color: DISTRICT_COLORS.TRANSPORT, price: 200, rent: 25 },
+      { id: 6, name: "Orzegów - Park Młodzieży", type: "property", district: "Orzegów", color: DISTRICT_COLORS.ORZEGOW, price: 100, rent: 6, housePrice: 50 },
+      { id: 7, name: "Karta Górnicza (Szansa)", type: "card", price: 0, rent: 0 },
+      { id: 8, name: "Koksownia Orzegów", type: "property", district: "Orzegów", color: DISTRICT_COLORS.ORZEGOW, price: 100, rent: 6, housePrice: 50 },
+      { id: 9, name: "Muzeum Chleba w Orzegowie", type: "property", district: "Orzegów", color: DISTRICT_COLORS.ORZEGOW, price: 120, rent: 8, housePrice: 50 },
+      { id: 10, name: "Areszt (Izba Chebzie)", type: "jail", price: 0, rent: 0 },
+      { id: 11, name: "Bykowina - Górka Janka", type: "property", district: "Bykowina", color: DISTRICT_COLORS.BYKOWINA, price: 140, rent: 10, housePrice: 100 },
+      { id: 12, name: "Wodociągi Rudzkie (PWiK)", type: "utility", district: "Media", color: DISTRICT_COLORS.MEDIA, price: 150, rent: 15 },
+      { id: 13, name: "Bykowina - Osiedle A3", type: "property", district: "Bykowina", color: DISTRICT_COLORS.BYKOWINA, price: 140, rent: 10, housePrice: 100 },
+      { id: 14, name: "Stara Kuźnia w Bykowinie", type: "property", district: "Bykowina", color: DISTRICT_COLORS.BYKOWINA, price: 160, rent: 12, housePrice: 100 },
+      { id: 15, name: "Dworzec PKP Ruda Śląska", type: "station", district: "Transport", color: DISTRICT_COLORS.TRANSPORT, price: 200, rent: 25 },
+      { id: 16, name: "Kopalnia Bielszowice", type: "property", district: "Bielszowice", color: DISTRICT_COLORS.BIELSZOWICE, price: 180, rent: 14, housePrice: 100 },
+      { id: 17, name: "Kasa Zapomogowa", type: "card", price: 0, rent: 0 },
+      { id: 18, name: "Park Strzelnica Bielszowice", type: "property", district: "Bielszowice", color: DISTRICT_COLORS.BIELSZOWICE, price: 180, rent: 14, housePrice: 100 },
+      { id: 19, name: "Dom Kultury w Bielszowicach", type: "property", district: "Bielszowice", color: DISTRICT_COLORS.BIELSZOWICE, price: 200, rent: 16, housePrice: 100 },
+      { id: 20, name: "Bezpłatny Parking", type: "parking", price: 0, rent: 0 },
+      { id: 21, name: "Elektrownia Halemba", type: "property", district: "Halemba", color: DISTRICT_COLORS.HALEMBA, price: 220, rent: 18, housePrice: 150 },
+      { id: 22, name: "Karta Górnicza (Szansa)", type: "card", price: 0, rent: 0 },
+      { id: 23, name: "Aquadrom Ruda Śląska", type: "property", district: "Halemba", color: DISTRICT_COLORS.HALEMBA, price: 220, rent: 18, housePrice: 150 },
+      { id: 24, name: "Szlak Miejski w Halembie", type: "property", district: "Halemba", color: DISTRICT_COLORS.HALEMBA, price: 240, rent: 20, housePrice: 150 },
+      { id: 25, name: "Autobus Metropolitalny M1", type: "station", district: "Transport", color: DISTRICT_COLORS.TRANSPORT, price: 200, rent: 25 },
+      { id: 26, name: "Wirek - Osiedle Ficinus", type: "property", district: "Wirek", color: DISTRICT_COLORS.WIREK, price: 260, rent: 22, housePrice: 150 },
+      { id: 27, name: "Wirek - C.H. Plaza", type: "property", district: "Wirek", color: DISTRICT_COLORS.WIREK, price: 260, rent: 22, housePrice: 150 },
+      { id: 28, name: "Zakład Energetyczny", type: "utility", district: "Media", color: DISTRICT_COLORS.MEDIA, price: 150, rent: 15 },
+      { id: 29, name: "Wieża Ciśnień w Wirku", type: "property", district: "Wirek", color: DISTRICT_COLORS.WIREK, price: 280, rent: 24, housePrice: 150 },
+      { id: 30, name: "Idziesz do Aresztu!", type: "go_to_jail", price: 0, rent: 0 },
+      { id: 31, name: "Godula - Szpital Miejski", type: "property", district: "Godula", color: DISTRICT_COLORS.GODULA, price: 300, rent: 26, housePrice: 200 },
+      { id: 32, name: "Godula - Park Dworski", type: "property", district: "Godula", color: DISTRICT_COLORS.GODULA, price: 300, rent: 26, housePrice: 200 },
+      { id: 33, name: "Kasa Zapomogowa", type: "card", price: 0, rent: 0 },
+      { id: 34, name: "Godula - Plac Niepodległości", type: "property", district: "Godula", color: DISTRICT_COLORS.GODULA, price: 320, rent: 28, housePrice: 200 },
+      { id: 35, name: "Drogowa Trasa Średnicowa (DTŚ)", type: "station", district: "Transport", color: DISTRICT_COLORS.TRANSPORT, price: 200, rent: 25 },
+      { id: 36, name: "Karta Górnicza (Szansa)", type: "card", price: 0, rent: 0 },
+      { id: 37, name: "Dworzec Chebzie (Stacja Biblioteka)", type: "property", district: "Nowy Bytom", color: DISTRICT_COLORS.NOWY_BYTOM, price: 350, rent: 35, housePrice: 200 },
+      { id: 38, name: "Podatek Społeczny", type: "tax", amount: 100 },
+      { id: 39, name: "Wielki Piec Huty Pokój", type: "property", district: "Nowy Bytom", color: DISTRICT_COLORS.NOWY_BYTOM, price: 400, rent: 50, housePrice: 200 }
     ];
 
     const AVATARS = [
@@ -479,49 +497,8 @@
     ];
 
     /* ==========================================================================
-       ONLINE MULTIPLAYER STATE
+       GRID CREATION & RENDER
        ========================================================================== */
-
-    let roomCode = null;
-    let localPlayerId = null;
-    let unsubRoom = null;
-
-    let gameState = {
-      status: "lobby", // lobby | playing
-      hostId: null,
-      players: [],
-      currentPlayerIndex: 0,
-      ownership: {}, // fieldId -> { ownerIndex, houses }
-      dice: [1, 1],
-      diceRolled: false,
-      logs: [],
-      activeTrade: null
-    };
-
-    /* ==========================================================================
-       DOM INIT
-       ========================================================================== */
-
-    window.onload = function() {
-      initBoardDOM();
-      // Expose functions to window
-      window.joinRoom = joinRoom;
-      window.startOnlineGame = startOnlineGame;
-      window.rollDice = rollDice;
-      window.endTurn = endTurn;
-      window.confirmBuyProperty = confirmBuyProperty;
-      window.closeBuyModal = closeBuyModal;
-      window.confirmUpgradeProperty = confirmUpgradeProperty;
-      window.closeUpgradeModal = closeUpgradeModal;
-      window.openTradeModal = openTradeModal;
-      window.setupTradeWindow = setupTradeWindow;
-      window.proposeTradeOnline = proposeTradeOnline;
-      window.acceptTradeOnline = acceptTradeOnline;
-      window.rejectTradeOnline = rejectTradeOnline;
-      window.closeTradeModal = closeTradeModal;
-      window.openRulesModal = () => document.getElementById('modal-rules').classList.remove('hidden');
-      window.closeRulesModal = () => document.getElementById('modal-rules').classList.add('hidden');
-    };
 
     function initBoardDOM() {
       const board = document.getElementById('board');
@@ -531,269 +508,68 @@
         cell.className = `cell grid-cell-${index}`;
         cell.onclick = () => selectFieldDetail(index);
 
+        // Standard 11x11 Monopoly coordinates calculation
         let gridArea = "";
-        if (index <= 9) gridArea = `11 / ${11 - index} / 12 / ${12 - index}`;
-        else if (index <= 16) gridArea = `${11 - (index - 9)} / 1 / ${12 - (index - 9)} / 2`;
-        else if (index <= 25) gridArea = `1 / ${index - 16} / 2 / ${index - 15}`;
-        else gridArea = `${index - 24} / 11 / ${index - 23} / 12`;
+        let colorBarClass = "";
+
+        if (index <= 10) {
+          // Bottom row (0 to 10): Right to Left
+          gridArea = `11 / ${11 - index} / 12 / ${12 - index}`;
+          colorBarClass = "color-bar-top";
+        } else if (index <= 20) {
+          // Left column (10 to 20): Bottom to Top
+          gridArea = `${11 - (index - 10)} / 1 / ${12 - (index - 10)} / 2`;
+          colorBarClass = "color-bar-right";
+        } else if (index <= 30) {
+          // Top row (20 to 30): Left to Right
+          gridArea = `1 / ${index - 19} / 2 / ${index - 18}`;
+          colorBarClass = "color-bar-bottom";
+        } else {
+          // Right column (30 to 39): Top to Bottom
+          gridArea = `${index - 29} / 11 / ${index - 28} / 12`;
+          colorBarClass = "color-bar-left";
+        }
+
         cell.style.gridArea = gridArea;
 
-        let colorBarHtml = field.type === 'property' && field.color ? `<div class="color-bar-top" style="background-color: ${field.color}"></div>` : '';
+        let colorBarHtml = field.type === 'property' && field.color ? `<div class="${colorBarClass}" style="background-color: ${field.color}"></div>` : '';
         let houseBadgeHtml = `<div id="house-indicator-${index}" class="hidden absolute top-0.5 right-0.5 house-badge"></div>`;
 
         cell.innerHTML = `
-          ${colorBarHtml}
+          ${index > 20 && index < 30 ? colorBarHtml : ''}
+          ${index > 10 && index < 20 ? colorBarHtml : ''}
           ${houseBadgeHtml}
-          <div class="p-0.5 text-center flex-1 flex flex-col justify-between items-center w-full">
-            <span class="font-extrabold text-[8px] sm:text-[9px] leading-tight text-slate-800 line-clamp-2 mt-0.5">${field.name}</span>
-            ${field.price ? `<span class="text-[8px] font-bold text-emerald-700">${field.price} zł</span>` : ''}
+          <div class="p-0.5 text-center flex-1 flex flex-col justify-between items-center w-full z-0">
+            <span class="font-extrabold text-[7px] sm:text-[8px] leading-tight text-slate-800 line-clamp-2 mt-0.5">${field.name}</span>
+            ${field.price ? `<span class="text-[7px] font-bold text-emerald-700">${field.price} zł</span>` : ''}
           </div>
-          <div id="tokens-container-${index}" class="absolute bottom-0.5 left-0.5 right-0.5 flex flex-wrap justify-center gap-0.5 pointer-events-none"></div>
+          ${index <= 10 ? colorBarHtml : ''}
+          ${index >= 30 ? colorBarHtml : ''}
+          <div id="tokens-container-${index}" class="absolute inset-0 flex flex-wrap items-center justify-center gap-0.5 pointer-events-none p-0.5 z-10"></div>
         `;
         board.appendChild(cell);
       });
     }
 
     /* ==========================================================================
-       ROOM LOBBY & FIREBASE REALTIME SYNC
+       CALCULATE RENT WITH FULL DISTRICT MULTIPLIER
        ========================================================================== */
 
-    async function joinRoom() {
-      const nameInput = document.getElementById('input-player-name').value.trim();
-      const codeInput = document.getElementById('input-room-code').value.trim().toUpperCase();
+    function calculateRent(field, ownership) {
+      let rent = field.rent;
+      if (!ownership) return rent;
 
-      if (!nameInput || !codeInput) {
-        alert("Wpisz swoje imię oraz kod pokoju!");
-        return;
+      // Check if full district is owned by the same player
+      const ownerId = ownership.ownerId;
+      const fullDistrictOwned = ownsFullDistrict(ownerId, field.district);
+
+      if (ownership.houses > 0) {
+        rent = rent * (1 + ownership.houses * 2);
+      } else if (fullDistrictOwned && field.type === 'property') {
+        rent = rent * 2; // Doubled rent for full set without houses
       }
 
-      roomCode = codeInput;
-      localPlayerId = auth.currentUser ? auth.currentUser.uid : 'p_' + Math.random().toString(36).substr(2, 6);
-
-      document.getElementById('display-room-code').innerText = roomCode;
-      document.getElementById('room-code-badge').classList.remove('hidden');
-
-      // Firestore Path following mandatory RULE 1
-      const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
-
-      // Subscribe to room updates
-      unsubRoom = onSnapshot(roomRef, (snapshot) => {
-        if (!snapshot.exists()) {
-          // Room does not exist -> Create new host room
-          const newRoomData = {
-            status: "lobby",
-            hostId: localPlayerId,
-            players: [{
-              id: localPlayerId,
-              name: nameInput,
-              money: 1500,
-              position: 0,
-              inJail: false,
-              avatar: AVATARS[0]
-            }],
-            currentPlayerIndex: 0,
-            ownership: {},
-            dice: [1, 1],
-            diceRolled: false,
-            logs: ["🎮 Stworzono nowy pokój " + roomCode],
-            activeTrade: null
-          };
-          setDoc(roomRef, newRoomData);
-        } else {
-          // Room exists -> Join or sync state
-          const data = snapshot.data();
-          gameState = data;
-
-          // Add self if in lobby and not yet added
-          if (gameState.status === 'lobby' && !gameState.players.some(p => p.id === localPlayerId)) {
-            if (gameState.players.length >= 4) {
-              alert("Pokój jest pełny!");
-              return;
-            }
-            const avatar = AVATARS[gameState.players.length];
-            gameState.players.push({
-              id: localPlayerId,
-              name: nameInput,
-              money: 1500,
-              position: 0,
-              inJail: false,
-              avatar: avatar
-            });
-            gameState.logs.push(`👋 Gracz ${nameInput} dołączył do pokoju.`);
-            updateDoc(roomRef, { players: gameState.players, logs: gameState.logs });
-          }
-
-          renderStateFromOnline();
-        }
-      }, (error) => console.error("Firestore sync error:", error));
-
-      document.getElementById('lobby-waiting-area').classList.remove('hidden');
-    }
-
-    function renderStateFromOnline() {
-      // Update Lobby view
-      if (gameState.status === 'lobby') {
-        document.getElementById('lobby-players-count').innerText = `${gameState.players.length}/4`;
-        const listEl = document.getElementById('lobby-players-list');
-        listEl.innerHTML = '';
-        gameState.players.forEach(p => {
-          listEl.innerHTML += `<div class="p-2 bg-slate-950 rounded border border-slate-800 flex justify-between items-center">
-            <span style="color:${p.avatar.color}" class="font-bold">${p.name} ${p.id === gameState.hostId ? '(Host)' : ''}</span>
-            <i class="fa-solid ${p.avatar.icon}"></i>
-          </div>`;
-        });
-
-        if (gameState.hostId === localPlayerId) {
-          document.getElementById('btn-start-online-game').classList.remove('hidden');
-          document.getElementById('lobby-wait-msg').classList.add('hidden');
-        }
-        return;
-      }
-
-      // Hide Lobby Modal once playing
-      document.getElementById('modal-lobby').classList.add('hidden');
-
-      // Update Turn Banner & Buttons
-      const currP = gameState.players[gameState.currentPlayerIndex];
-      document.getElementById('current-player-name').innerText = currP.name;
-      document.getElementById('current-player-name').style.color = currP.avatar.color;
-
-      const isMyTurn = currP.id === localPlayerId;
-
-      document.getElementById('btn-roll').disabled = !isMyTurn || gameState.diceRolled;
-      document.getElementById('btn-trade').disabled = !isMyTurn;
-      document.getElementById('btn-end-turn').disabled = !isMyTurn || !gameState.diceRolled;
-
-      if (isMyTurn && !gameState.diceRolled) {
-        document.getElementById('btn-roll').classList.remove('opacity-50', 'cursor-not-allowed');
-      } else {
-        document.getElementById('btn-roll').classList.add('opacity-50', 'cursor-not-allowed');
-      }
-
-      if (isMyTurn && gameState.diceRolled) {
-        document.getElementById('btn-end-turn').className = "bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-lg text-xs sm:text-sm shadow flex items-center gap-1.5";
-      } else {
-        document.getElementById('btn-end-turn').className = "bg-slate-700 text-slate-400 font-bold px-3 py-2 rounded-lg text-xs sm:text-sm transition cursor-not-allowed flex items-center gap-1.5";
-      }
-
-      // Dice Display
-      document.getElementById('dice-1').innerText = gameState.dice[0];
-      document.getElementById('dice-2').innerText = gameState.dice[1];
-
-      // Update Players Panel
-      document.getElementById('active-players-count').innerText = `${gameState.players.length}/4`;
-      const pContainer = document.getElementById('players-container');
-      pContainer.innerHTML = '';
-      gameState.players.forEach((p, idx) => {
-        const isActive = idx === gameState.currentPlayerIndex;
-        pContainer.innerHTML += `
-          <div class="p-2.5 rounded-xl border ${isActive ? 'bg-slate-800 border-amber-500 active-player-card' : 'bg-slate-950 border-slate-800'} flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background-color: ${p.avatar.color}">
-                <i class="fa-solid ${p.avatar.icon}"></i>
-              </div>
-              <span class="font-bold text-xs text-white">${p.name} ${p.id === localPlayerId ? '(Ty)' : ''}</span>
-            </div>
-            <span class="text-xs font-black text-amber-400">${p.money} PLN</span>
-          </div>
-        `;
-      });
-
-      // Update Tokens & Ownership Badges
-      renderTokens();
-      renderOwnershipBadges();
-
-      // Render Logs
-      const logsEl = document.getElementById('game-logs');
-      logsEl.innerHTML = '';
-      gameState.logs.slice(-20).forEach(l => {
-        logsEl.innerHTML += `<div class="leading-tight py-0.5">${l}</div>`;
-      });
-      logsEl.scrollTop = logsEl.scrollHeight;
-
-      // Handle Online Trade Confirmation Popup for target player
-      if (gameState.activeTrade && gameState.activeTrade.targetId === localPlayerId && gameState.activeTrade.status === 'pending') {
-        showTradeConfirmModal(gameState.activeTrade);
-      } else {
-        document.getElementById('modal-trade-confirm').classList.add('hidden');
-      }
-    }
-
-    function renderTokens() {
-      BOARD_FIELDS.forEach((_, idx) => {
-        const c = document.getElementById(`tokens-container-${idx}`);
-        if (c) c.innerHTML = '';
-      });
-      gameState.players.forEach(p => {
-        const c = document.getElementById(`tokens-container-${p.position}`);
-        if (c) {
-          const t = document.createElement('div');
-          t.className = 'token';
-          t.style.backgroundColor = p.avatar.color;
-          t.innerHTML = `<i class="fa-solid ${p.avatar.icon}"></i>`;
-          c.appendChild(t);
-        }
-      });
-    }
-
-    function renderOwnershipBadges() {
-      Object.keys(gameState.ownership).forEach(fieldId => {
-        const o = gameState.ownership[fieldId];
-        const cell = document.getElementById(`cell-${fieldId}`);
-        const ownerPlayer = gameState.players.find(p => p.id === o.ownerId);
-        if (cell && ownerPlayer) {
-          cell.style.boxShadow = `inset 0 0 0 3px ${ownerPlayer.avatar.color}`;
-        }
-        const houseBadge = document.getElementById(`house-indicator-${fieldId}`);
-        if (houseBadge && o.houses > 0) {
-          houseBadge.classList.remove('hidden');
-          houseBadge.innerHTML = `<i class="fa-solid fa-house"></i> ${o.houses}`;
-        }
-      });
-    }
-
-    async function pushRoomState() {
-      if (!roomCode) return;
-      const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
-      await updateDoc(roomRef, gameState);
-    }
-
-    async function startOnlineGame() {
-      gameState.status = 'playing';
-      gameState.logs.push("🚀 Gra została rozpoczęta! Powodzenia!");
-      await pushRoomState();
-    }
-
-    /* ==========================================================================
-       GAMEPLAY & TURNS
-       ========================================================================== */
-
-    async function rollDice() {
-      if (gameState.diceRolled) return;
-
-      const d1 = Math.floor(Math.random() * 6) + 1;
-      const d2 = Math.floor(Math.random() * 6) + 1;
-      const steps = d1 + d2;
-
-      gameState.dice = [d1, d2];
-      gameState.diceRolled = true;
-
-      const p = gameState.players[gameState.currentPlayerIndex];
-      gameState.logs.push(`🎲 ${p.name} wyrzuca ${d1} i ${d2} (${steps}).`);
-
-      // Position update
-      const oldPos = p.position;
-      let newPos = oldPos + steps;
-      if (newPos >= BOARD_FIELDS.length) {
-        newPos = newPos % BOARD_FIELDS.length;
-        p.money += 200;
-        gameState.logs.push(`💰 ${p.name} przeszedł przez START (+200 PLN).`);
-      }
-      p.position = newPos;
-
-      // Handle Landing
-      handleLanding(p, newPos);
-      await pushRoomState();
+      return Math.round(rent);
     }
 
     function handleLanding(player, fieldId) {
@@ -801,9 +577,9 @@
       const ownership = gameState.ownership[fieldId];
 
       if (field.type === 'go_to_jail') {
-        player.position = 9;
+        player.position = 10;
         player.inJail = true;
-        gameState.logs.push(`🚨 ${player.name} trafia do Aresztu!`);
+        gameState.logs.push(`🚨 ${player.name} trafia do Aresztu w Chebziu!`);
         return;
       }
 
@@ -815,19 +591,18 @@
 
       if (field.type === 'property' || field.type === 'station' || field.type === 'utility') {
         if (!ownership) {
-          // Unowned -> Prompt purchase
+          // Unowned -> Purchase Modal
           openBuyModal(field);
         } else if (ownership.ownerId !== player.id) {
-          // Owned by other -> Pay rent
+          // Owned by someone else -> Pay Rent
           const owner = gameState.players.find(p => p.id === ownership.ownerId);
-          let rent = field.rent;
-          if (ownership.houses > 0) rent = rent * (1 + ownership.houses * 1.5);
+          const rent = calculateRent(field, ownership);
           
           player.money -= rent;
           owner.money += rent;
           gameState.logs.push(`🏠 ${player.name} płaci czynsz ${rent} PLN dla ${owner.name}.`);
         } else {
-          // Owned by local player -> Check house building rule
+          // Owned by landed player -> Re-landing allows building if full district is owned
           if (field.type === 'property' && ownsFullDistrict(player.id, field.district)) {
             if ((ownership.houses || 0) < 4) {
               openUpgradeModal(field, ownership.houses || 0);
