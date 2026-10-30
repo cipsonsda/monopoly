@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gry komputerowe</title>
+    <link rel="stylesheet" href="styl.css">
+</head>
+<body>
+
+    <!-- Blok nagłówkowy -->
+    <header>
+        <h1>Ranking gier komputerowych</h1>
+    </header>
+
+    <!-- Blok sekcji lewej -->
+    <aside class="lewy">
+        <h3>Top 5 gier w tym miesiącu</h3>
+        <ul id="top-list">
+            <li>Mag <span class="punkty">357</span></li>
+            <li>Księżniczka Persji <span class="punkty">293</span></li>
+            <li>Zamczysko <span class="punkty">200</span></li>
+            <li>Kalipso <span class="punkty">125</span></li>
+            <li>Wyprawa Na Księżyc <span class="punkty">103</span></li>
+        </ul>
+
+        <h3>Nasz sklep</h3>
+        <p><a href="http://sklep.gry.pl" target="_blank">Tu kupisz gry</a></p>
+
+        <h3>Stronę wykonał</h3>
+        <p>00000000000</p>
+    </aside>
+
+    <!-- Blok sekcji środkowej - Wszystkie gry z bazy danych -->
+    <section class="srodkowy">
+        <div class="blok-gry">
+            <img src="Czarodziejka.jpg" alt="Czarodziejka">
+            <p>Czarodziejka</p>
+        </div>
+        <div class="blok-gry">
+            <img src="kalipso.jpg" alt="Kalipso">
+            <p>Kalipso</p>
+        </div>
+        <div class="blok-gry">
+            <img src="katedra.jpg" alt="Katedra">
+            <p>Katedra</p>
+        </div>
+        <div class="blok-gry">
+            <img src="krokodyl.jpg" alt="Krokodyl">
+            <p>Krokodyl</p>
+        </div>
+        <div class="blok-gry">
+            <img src="Persja.jpg" alt="Księżniczka Persji">
+            <p>Księżniczka Persji</p>
+        </div>
+        <div class="blok-gry">
+            <img src="Mag.jpg" alt="Mag">
+            <p>Mag</p>
+        </div>
+        <div class="blok-gry">
+            <img src="NieznanyLad.jpg" alt="Nieznany Ląd">
+            <p>Nieznany Ląd</p>
+        </div>
+        <div class="blok-gry">
+            <img src="WyprawaNaKsiezyc.jpg" alt="Wyprawa Na Księżyc">
+            <p>Wyprawa Na Księżyc</p>
+        </div>
+    </section>
+
+    <!-- Blok sekcji prawej -->
+    <aside class="prawy">
+        <h3>Dodaj nową grę</h3>
+        <form id="form-add" action="gry.html" method="POST">
+            <label for="nazwa">nazwa</label>
+            <input type="text" id="nazwa" name="nazwa">
+
+            <label for="opis">opis</label>
+            <input type="text" id="opis" name="opis">
+
+            <label for="cena">cena</label>
+            <input type="text" id="cena" name="cena">
+
+            <label for="zdjecie">zdjęcie</label>
+            <input type="text" id="zdjecie" name="zdjecie">
+
+            <input type="submit" value="DODAJ">
+        </form>
+    </aside>
+
+    <!-- Blok stopki -->
+    <footer>
+        <form id="form-search" action="gry.html" method="POST">
+            <input type="text" id="szukaj_id" name="szukaj_id">
+            <input type="submit" value="Pokaż opis">
+        </form>
+        <div id="opis-wynik">
+            <p><strong>Mag, 357 punktów, 150 zł</strong></p>
+            <p>W pradawnym świecie magowie władają państwami. Ci potężni czarodzieje nie znają litości dla swoich ludów, aż ... W odległej krainie rodzi się dziecko, które nie tylko zdradza umiejętności czarowania, ale też wkrótce zbuntuje się przeciwko hegemoni Magów i samo doprowadzi do zjednoczenia narodów i pokoju w pradawnym Świecie. Wpierw jednak musi stoczyć wojnę z Magami</p>
+        </div>
+    </footer>
+
+</body>
+</html>
