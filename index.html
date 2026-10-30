@@ -9,15 +9,7 @@
     body {
       background-color: #0f172a;
       color: #f8fafc;
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    .board-grid {
-      display: grid;
-      grid-template-columns: repeat(11, minmax(0, 1fr));
-      grid-template-rows: repeat(11, minmax(0, 1fr));
-      aspect-ratio: 1 / 1;
-      max-width: 850px;
-      margin: auto;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
     .tile-brown { border-top: 4px solid #78350f; }
     .tile-lightblue { border-top: 4px solid #38bdf8; }
@@ -32,12 +24,12 @@
     .tile-special { border-top: 4px solid #94a3b8; }
   </style>
 </head>
-<body class="p-2 md:p-6 min-h-screen flex flex-col items-center">
+<body class="p-2 md:p-6 min-h-screen flex flex-col items-center justify-start">
 
   <!-- NAGŁÓWEK -->
-  <header class="text-center mb-4">
+  <header class="text-center my-4">
     <h1 class="text-3xl font-extrabold text-amber-500 tracking-wide">MONOPOLY: RUDA ŚLĄSKA</h1>
-    <p class="text-sm text-slate-400">Graj online, kupuj dzielnice, stawiaj familoki i handluj bez oszukiwania!</p>
+    <p class="text-sm text-slate-400">Graj online w przeglądarce! Kupuj dzielnice, stawiaj familoki i handluj!</p>
   </header>
 
   <!-- FORMULARZ WEJŚCIA DO POKOJU -->
@@ -52,7 +44,7 @@
         <label class="block text-xs font-semibold text-slate-300 mb-1">Kod Pokoju</label>
         <input id="input-room-code" type="text" value="RUDA1" class="w-full p-2.5 rounded bg-slate-900 border border-slate-700 text-amber-300 font-bold uppercase focus:outline-none focus:border-amber-500">
       </div>
-      <button onclick="joinRoom()" class="w-full py-3 bg-amber-600 hover:bg-amber-500 font-bold rounded-lg text-slate-950 transition shadow-lg">
+      <button onclick="window.joinRoom()" class="w-full py-3 bg-amber-600 hover:bg-amber-500 font-bold rounded-lg text-slate-950 transition shadow-lg">
         Dołącz / Stwórz Pokój
       </button>
     </div>
@@ -65,7 +57,7 @@
     </div>
     <h3 class="text-lg font-bold text-slate-200 mb-2">Gracze w pokoju:</h3>
     <div id="lobby-players-list" class="space-y-2 mb-4"></div>
-    <button id="btn-start-game" onclick="startOnlineGame()" class="hidden w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition shadow-lg">
+    <button id="btn-start-game" onclick="window.startOnlineGame()" class="hidden w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition shadow-lg">
       🚀 Rozpocznij Grać
     </button>
   </div>
@@ -84,10 +76,10 @@
       <div class="bg-slate-900 p-4 rounded-lg border border-slate-700 text-center">
         <div id="turn-indicator" class="text-sm font-bold text-amber-400 mb-2">Oczekiwanie na turę...</div>
         <div class="flex justify-center gap-2 mb-3">
-          <button onclick="rollDice()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded shadow">
+          <button onclick="window.rollDice()" class="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded shadow">
             🎲 Rzuć Kośćmi
           </button>
-          <button onclick="endTurn()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded">
+          <button onclick="window.endTurn()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded">
             ⏭️ Zakończ Turę
           </button>
         </div>
@@ -97,9 +89,9 @@
     </div>
 
     <!-- CENTER: PLANSZA GRAFICZNA -->
-    <div class="lg:col-span-2 bg-slate-900 p-2 rounded-xl border border-slate-700 flex items-center justify-center">
-      <div id="board-container" class="board-grid w-full bg-slate-950 p-1 gap-1 text-[10px] text-center">
-        <!-- Renderowanie planszy przez JS -->
+    <div class="lg:col-span-2 bg-slate-900 p-3 rounded-xl border border-slate-700">
+      <div id="board-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-8 gap-1.5 w-full bg-slate-950 p-2 rounded text-center">
+        <!-- Renderowanie pól -->
       </div>
     </div>
 
@@ -110,7 +102,6 @@
     </div>
   </div>
 
-  <!-- SCRIPT Z LOGIKĄ GRAFICZNĄ I BEZPOŚREDNIMI DEKLARACJAMI -->
   <script>
     var roomCode = null;
     var localPlayerId = 'usr_' + Math.random().toString(36).substring(2, 9);
@@ -183,13 +174,13 @@
 
       container.innerHTML = BOARD_FIELDS.map(function(f) {
         return `
-          <div id="tile-${f.id}" class="bg-slate-800 p-1 rounded border border-slate-700 flex flex-col justify-between tile-${f.group} relative min-h-[50px]">
-            <div class="flex justify-between items-center text-[8px]">
-              <span class="font-extrabold text-slate-300 leading-tight">${f.name}</span>
+          <div id="tile-${f.id}" class="bg-slate-800 p-1.5 rounded border border-slate-700 flex flex-col justify-between tile-${f.group} relative min-h-[60px]">
+            <div class="flex justify-between items-center text-[9px]">
+              <span class="font-extrabold text-slate-200 leading-tight">${f.name}</span>
               <span class="text-amber-400">#${f.id}</span>
             </div>
-            <div id="tile-owner-${f.id}" class="text-[8px] text-amber-300 font-bold"></div>
-            <div id="tile-players-${f.id}" class="flex flex-wrap gap-1 justify-center my-0.5"></div>
+            <div id="tile-owner-${f.id}" class="text-[9px] text-amber-300 font-bold my-0.5"></div>
+            <div id="tile-players-${f.id}" class="flex flex-wrap gap-1 justify-center my-0.5 min-h-[16px]"></div>
             <div class="text-[8px] text-slate-400">${f.price ? f.price + 'zł' : ''}</div>
           </div>
         `;
@@ -304,10 +295,10 @@
       var prop = gameState.properties[currentTile.id];
       if (!prop) {
         if (curr.money >= currentTile.price) {
-          area.innerHTML = `<button onclick="buyCurrentTile()" class="w-full py-2 bg-green-600 hover:bg-green-500 font-bold text-xs text-white rounded">Kup ${currentTile.name} (${currentTile.price}zł)</button>`;
+          area.innerHTML = `<button onclick="window.buyCurrentTile()" class="w-full py-2 bg-green-600 hover:bg-green-500 font-bold text-xs text-white rounded">Kup ${currentTile.name} (${currentTile.price}zł)</button>`;
         }
       } else if (prop.owner === curr.id) {
-        area.innerHTML = `<button onclick="upgradeCurrentTile()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 font-bold text-xs text-white rounded">Rozbuduj dzielnicę (${currentTile.price / 2}zł)</button>`;
+        area.innerHTML = `<button onclick="window.upgradeCurrentTile()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 font-bold text-xs text-white rounded">Rozbuduj dzielnicę (${currentTile.price / 2}zł)</button>`;
       }
     }
 
