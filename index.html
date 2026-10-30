@@ -1,3 +1,4 @@
+<!-- ... existing code -->
 <!-- FIREBASE & ONLINE LOBBY MODULES -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -23,7 +24,7 @@
         auth = getAuth(app);
       }
     } catch (e) {
-      console.warn("Brak aktywnej konfiguracji Firebase - uruchamianie w trybie hybrydowym lokalnym.");
+      console.warn("Brak aktywnej konfiguracji Firebase - tryb lokalny.");
     }
 
     let currentUser = null;
@@ -37,12 +38,56 @@
       { name: "Szyb Górniczy", emoji: "🏗️" },
       { name: "Kogut Ruda", emoji: "🐓" },
       { name: "Węglarka", emoji: "🚃" },
-      { name: "Kask", emoji: "🪖" }
+      { name: "Kask Górniczy", emoji: "🪖" }
     ];
 
-    // Game state structure
+    // Pełna tablica 40 pól Rudy Śląskiej
+    const BOARD_FIELDS = [
+      { id: 0, name: "START", type: "start", price: 0, rent: 0, group: "special" },
+      { id: 1, name: "Kochłowice - Rynek", type: "property", price: 60, rent: 2, group: "brown" },
+      { id: 2, name: "Karta Górnicza", type: "chance", price: 0, rent: 0, group: "special" },
+      { id: 3, name: "Sanktuarium MB", type: "property", price: 60, rent: 4, group: "brown" },
+      { id: 4, name: "Podatek od Śmieci", type: "tax", price: 100, rent: 0, group: "special" },
+      { id: 5, name: "Linia Tramwajowa 9", type: "transport", price: 200, rent: 25, group: "transport" },
+      { id: 6, name: "Orzegów - Park", type: "property", price: 100, rent: 6, group: "lightblue" },
+      { id: 7, name: "Karta Górnicza", type: "chance", price: 0, rent: 0, group: "special" },
+      { id: 8, name: "Koksownia Orzegów", type: "property", price: 100, rent: 6, group: "lightblue" },
+      { id: 9, name: "Muzeum Chleba", type: "property", price: 120, rent: 8, group: "lightblue" },
+      { id: 10, name: "Izba Wytrzeźwień", type: "jail", price: 0, rent: 0, group: "special" },
+      { id: 11, name: "Bykowina - Górka Janka", type: "property", price: 140, rent: 10, group: "pink" },
+      { id: 12, name: "Wodociągi Rudzkie", type: "utility", price: 150, rent: 10, group: "utility" },
+      { id: 13, name: "Bykowina - Osiedle A3", type: "property", price: 140, rent: 10, group: "pink" },
+      { id: 14, name: "Bykowina - Stara Kuźnia", type: "property", price: 160, rent: 12, group: "pink" },
+      { id: 15, name: "Dworzec PKP Ruda", type: "transport", price: 200, rent: 25, group: "transport" },
+      { id: 16, name: "Bielszowice - Kopalnia", type: "property", price: 180, rent: 14, group: "orange" },
+      { id: 17, name: "Karta Górnicza", type: "chance", price: 0, rent: 0, group: "special" },
+      { id: 18, name: "Park Strzelnica", type: "property", price: 180, rent: 14, group: "orange" },
+      { id: 19, name: "Dom Kultury Bielszowice", type: "property", price: 200, rent: 16, group: "orange" },
+      { id: 20, name: "Bezpłatny Parking", type: "parking", price: 0, rent: 0, group: "special" },
+      { id: 21, name: "Elektrownia Halemba", type: "property", price: 220, rent: 18, group: "red" },
+      { id: 22, name: "Karta Górnicza", type: "chance", price: 0, rent: 0, group: "special" },
+      { id: 23, name: "Aquadrom Halemba", type: "property", price: 220, rent: 18, group: "red" },
+      { id: 24, name: "Szlak Miejski Halemba", type: "property", price: 240, rent: 20, group: "red" },
+      { id: 25, name: "Autobus M1 Metropolia", type: "transport", price: 200, rent: 25, group: "transport" },
+      { id: 26, name: "Wirek - Osiedle Ficinus", type: "property", price: 260, rent: 22, group: "yellow" },
+      { id: 27, name: "C.H. Plaza Wirek", type: "property", price: 260, rent: 22, group: "yellow" },
+      { id: 28, name: "Zakład Energetyczny", type: "utility", price: 150, rent: 10, group: "utility" },
+      { id: 29, name: "Wieża Ciśnień Wirek", type: "property", price: 280, rent: 24, group: "yellow" },
+      { id: 30, name: "Idziesz do Aresztu", type: "gotojail", price: 0, rent: 0, group: "special" },
+      { id: 31, name: "Godula - Szpital", type: "property", price: 300, rent: 26, group: "green" },
+      { id: 32, name: "Park Dworski Godula", type: "property", price: 300, rent: 26, group: "green" },
+      { id: 33, name: "Karta Górnicza", type: "chance", price: 0, rent: 0, group: "special" },
+      { id: 34, name: "Plac Niepodległości", type: "property", price: 320, rent: 28, group: "green" },
+      { id: 35, name: "Drogowa Trasa Średnicowa", type: "transport", price: 200, rent: 25, group: "transport" },
+      { id: 36, name: "Karta Górnicza", type: "chance", price: 0, rent: 0, group: "special" },
+      { id: 37, name: "Dworzec Chebzie Stacja", type: "property", price: 350, rent: 35, group: "darkblue" },
+      { id: 38, name: "Kasa Zapomogowa", type: "tax", price: 100, rent: 0, group: "special" },
+      { id: 39, name: "Wielki Piec Pokój", type: "property", price: 400, rent: 50, group: "darkblue" }
+    ];
+
+    // Stan gry
     let gameState = {
-      status: 'waiting', // waiting, playing
+      status: 'waiting',
       hostId: null,
       currentPlayerIndex: 0,
       diceRolled: false,
@@ -71,16 +116,14 @@
     }
 
     /* ==========================================================================
-       GAME ENGINE & UTILITY FUNCTIONS
+       RENDEROWANIE I LOGIKA
        ========================================================================== */
 
     function initBoardDOM() {
-      // Board initialization logic
       renderGameState();
     }
 
     function renderGameState() {
-      // Update UI matching current gameState
       const lobbyArea = document.getElementById('lobby-waiting-area');
       const gameArea = document.getElementById('game-main-area');
       
@@ -92,18 +135,16 @@
         if (gameArea) gameArea.classList.add('hidden');
       }
 
-      // Update player list in lobby
       const playerList = document.getElementById('lobby-players-list');
       if (playerList) {
         playerList.innerHTML = gameState.players.map(p => `
           <div class="flex items-center justify-between p-2 bg-slate-800 rounded border border-slate-700">
-            <span class="font-bold text-amber-400">${p.avatar.emoji} ${p.name}</span>
+            <span class="font-bold text-amber-400">${p.avatar ? p.avatar.emoji : '👤'} ${p.name}</span>
             <span class="text-xs text-slate-400">${p.id === gameState.hostId ? '👑 Gospodarz' : 'Gracz'}</span>
           </div>
         `).join('');
       }
 
-      // Host start button visibility
       const startBtn = document.getElementById('btn-start-game');
       if (startBtn) {
         if (gameState.hostId === localPlayerId && gameState.status === 'waiting') {
@@ -129,69 +170,6 @@
       }
     }
 
-    async function rollDice() {
-      if (gameState.status !== 'playing') return;
-      const currPlayer = gameState.players[gameState.currentPlayerIndex];
-      if (currPlayer.id !== localPlayerId) {
-        alert("To nie Twoja tura!");
-        return;
-      }
-      if (gameState.diceRolled) {
-        alert("Już rzuciłeś kośćmi w tej turze!");
-        return;
-      }
-
-      const d1 = Math.floor(Math.random() * 6) + 1;
-      const d2 = Math.floor(Math.random() * 6) + 1;
-      gameState.lastDice = [d1, d2];
-      gameState.diceRolled = true;
-
-      currPlayer.position = (currPlayer.position + d1 + d2) % 40;
-      gameState.logs.push(`🎲 ${currPlayer.name} wyrzucił ${d1} + ${d2} = ${d1 + d2}. Prechodzi na pole #${currPlayer.position}.`);
-
-      await pushRoomState();
-      renderGameState();
-    }
-
-    async function endTurn() {
-      if (gameState.status !== 'playing') return;
-      const currPlayer = gameState.players[gameState.currentPlayerIndex];
-      if (currPlayer.id !== localPlayerId) return;
-
-      if (!gameState.diceRolled) {
-        alert("Musisz najpierw rzucić kośćmi!");
-        return;
-      }
-
-      gameState.diceRolled = false;
-      gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
-      const nextPlayer = gameState.players[gameState.currentPlayerIndex];
-      gameState.logs.push(`⏭️ Tura gracza: ${nextPlayer.name}`);
-
-      await pushRoomState();
-      renderGameState();
-    }
-
-    function openBuyModal() {}
-    function confirmBuyProperty() {}
-    function closeBuyModal() {}
-    function openUpgradeModal() {}
-    function confirmUpgradeProperty() {}
-    function closeUpgradeModal() {}
-    function openTradeModal() {}
-    function proposeTradeOnline() {}
-    function acceptTradeOnline() {}
-    function rejectTradeOnline() {}
-    function closeTradeModal() {}
-    function openRulesModal() {}
-    function closeRulesModal() {}
-    function setupTradeWindow() {}
-    function selectFieldDetail() {}
-
-    /* ==========================================================================
-       ROOM & SYNC LOGIC
-       ========================================================================== */
-
     async function joinRoom() {
       const nameInput = document.getElementById('input-player-name').value.trim();
       const codeInput = document.getElementById('input-room-code').value.trim().toUpperCase();
@@ -206,10 +184,12 @@
       }
 
       roomCode = codeInput;
-      document.getElementById('display-room-code').innerText = roomCode;
-      document.getElementById('room-code-badge').classList.remove('hidden');
+      const codeBadge = document.getElementById('room-code-badge');
+      if (codeBadge) {
+        document.getElementById('display-room-code').innerText = roomCode;
+        codeBadge.classList.remove('hidden');
+      }
 
-      // Initialize BroadcastChannel for multi-tab synchronization
       syncChannel = new BroadcastChannel(`room_${roomCode}`);
       syncChannel.onmessage = (event) => {
         gameState = event.data;
@@ -224,7 +204,7 @@
           roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
           snap = await getDoc(roomDocRef);
         } catch (e) {
-          console.log("Fallback do trybu hybrydowego");
+          console.log("Fallback do trybu lokalnego");
         }
       }
 
@@ -282,7 +262,8 @@
 
       listenToRoom();
 
-      document.getElementById('lobby-waiting-area').classList.remove('hidden');
+      const lobbyElem = document.getElementById('lobby-waiting-area');
+      if (lobbyElem) lobbyElem.classList.remove('hidden');
       renderGameState();
     }
 
@@ -295,7 +276,7 @@
             gameState = docSnap.data();
             renderGameState();
           }
-        }, (err) => console.log("Odsłuch Firebase opcjonalny:", err));
+        }, (err) => console.log("Odsłuch opcjonalny:", err));
       }
 
       setInterval(() => {
@@ -321,7 +302,66 @@
       await pushRoomState();
     }
 
-    // Attach all interactive handlers safely to global window scope
+    async function rollDice() {
+      if (gameState.status !== 'playing') return;
+      const currPlayer = gameState.players[gameState.currentPlayerIndex];
+      if (currPlayer.id !== localPlayerId) {
+        alert("To nie Twoja tura!");
+        return;
+      }
+      if (gameState.diceRolled) {
+        alert("Już rzuciłeś kośćmi w tej turze!");
+        return;
+      }
+
+      const d1 = Math.floor(Math.random() * 6) + 1;
+      const d2 = Math.floor(Math.random() * 6) + 1;
+      gameState.lastDice = [d1, d2];
+      gameState.diceRolled = true;
+
+      currPlayer.position = (currPlayer.position + d1 + d2) % 40;
+      gameState.logs.push(`🎲 ${currPlayer.name} wyrzucił ${d1} + ${d2} = ${d1 + d2}. Przechodzi na pole #${currPlayer.position}.`);
+
+      await pushRoomState();
+      renderGameState();
+    }
+
+    async function endTurn() {
+      if (gameState.status !== 'playing') return;
+      const currPlayer = gameState.players[gameState.currentPlayerIndex];
+      if (currPlayer.id !== localPlayerId) return;
+
+      if (!gameState.diceRolled) {
+        alert("Musisz najpierw rzucić kośćmi!");
+        return;
+      }
+
+      gameState.diceRolled = false;
+      gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+      const nextPlayer = gameState.players[gameState.currentPlayerIndex];
+      gameState.logs.push(`⏭️ Tura gracza: ${nextPlayer.name}`);
+
+      await pushRoomState();
+      renderGameState();
+    }
+
+    function openBuyModal() {}
+    function confirmBuyProperty() {}
+    function closeBuyModal() {}
+    function openUpgradeModal() {}
+    function confirmUpgradeProperty() {}
+    function closeUpgradeModal() {}
+    function openTradeModal() {}
+    function proposeTradeOnline() {}
+    function acceptTradeOnline() {}
+    function rejectTradeOnline() {}
+    function closeTradeModal() {}
+    function openRulesModal() {}
+    function closeRulesModal() {}
+    function setupTradeWindow() {}
+    function selectFieldDetail() {}
+
+    // Eksport wszystkich funkcji do zasięgu globalnego (window)
     window.joinRoom = joinRoom;
     window.startOnlineGame = startOnlineGame;
     window.rollDice = rollDice;
@@ -342,10 +382,10 @@
     window.setupTradeWindow = setupTradeWindow;
     window.selectFieldDetail = selectFieldDetail;
 
-    // Initialize board on load
     window.onload = () => {
       initBoardDOM();
     };
   </script>
 </body>
 </html>
+<!-- ... existing code -->
