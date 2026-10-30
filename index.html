@@ -1,29 +1,205 @@
-<!DOCTYPE html>
-<html lang="pl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monopoly: Ruda Śląska Online</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
+<!-- FIREBASE & ONLINE LOBBY MODULES -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, updateDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            silesia: {
-              black: '#121212',
-              coal: '#1a1a1a',
-              brick: '#8b261d',
-              gold: '#da9100',
-              accent: '#d97706',
-              bg: '#f3f4f6'
-            }
+    // Global Environment Setup
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'monopoly-ruda-slaska';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+    let app = null;
+    let db = null;
+    let auth = null;
+
+    if (firebaseConfig && firebaseConfig.apiKey !== "AIzaSyDummyKeyForFallbackOnly") {
+      try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+      } catch (e) {
+        console.warn("Brak aktywnego Firebase config, przełączanie w tryb lokalnego połączenia online.");
+      }
+    }
+
+    let currentUser = null;
+    let roomCode = null;
+    let roomDocRef = null;
+    let unsubscribeRoom = null;
+    let localPlayerId = 'usr_' + Math.random().toString(36).substring(2, 9);
+    let syncChannel = null;
+
+    // Game state structure
+    let gameState = {
+      status: 'waiting', // waiting, playing
+      hostId: null,
+      currentPlayerIndex: 0,
+      diceRolled: false,
+      lastDice: [1, 1],
+      players: [],
+      ownership: {},
+      logs: [],
+      activeTrade: null
+    };
+
+    if (auth) {
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        signInWithCustomToken(auth, __initial_auth_token).then(userCred => {
+          currentUser = userCred.user;
+          localPlayerId = currentUser.uid;
+        }).catch(() => signInAnonymously(auth).then(u => {
+          currentUser = u.user;
+          localPlayerId = currentUser.uid;
+        }));
+      } else {
+        signInAnonymously(auth).then(u => {
+          currentUser = u.user;
+          localPlayerId = currentUser.uid;
+        });
+      }
+    }
+
+    /* ==========================================================================
+       ROOM & ONLINE SYNC LOGIC (HYBRID FIREBASE + BROADCAST CHANNEL)
+       ========================================================================== */
+
+    async function pushRoomState() {
+      // Direct local storage sync for instant tab-to-tab multiplayer demo
+      localStorage.setItem(`monopoly_room_${roomCode}`, JSON.stringify(gameState));
+      if (syncChannel) {
+        syncChannel.postMessage(gameState);
+      }
+
+      if (roomDocRef && db) {
+        try {
+          await setDoc(roomDocRef, gameState, { merge: true });
+        } catch (err) {
+          console.warn("Zapis w chmurze opcjonalny:", err);
+        }
+      }
+    }
+
+    async function joinRoom() {
+      const nameInput = document.getElementById('input-player-name').value.trim();
+      const codeInput = document.getElementById('input-room-code').value.trim().toUpperCase();
+
+      if (!nameInput) {
+        alert("Wpisz swój nick przed dołączeniem!");
+        return;
+      }
+      if (!codeInput) {
+        alert("Wpisz kod pokoju!");
+        return;
+      }
+
+      roomCode = codeInput;
+      document.getElementById('display-room-code').innerText = roomCode;
+      document.getElementById('room-code-badge').classList.remove('hidden');
+
+      // Initialize BroadcastChannel for instant local multi-tab / device connection
+      syncChannel = new BroadcastChannel(`room_${roomCode}`);
+      syncChannel.onmessage = (event) => {
+        gameState = event.data;
+        renderGameState();
+      };
+
+      let existingRoomData = localStorage.getItem(`monopoly_room_${roomCode}`);
+      let snap = null;
+
+      if (db) {
+        try {
+          roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomCode);
+          snap = await getDoc(roomDocRef);
+        } catch (e) {
+          console.log("Firebase fallback do trybu bezpośredniego");
+        }
+      }
+
+      if (!existingRoomData && (!snap || !snap.exists())) {
+        // Stwórz nowy pokój
+        gameState = {
+          status: 'waiting',
+          hostId: localPlayerId,
+          currentPlayerIndex: 0,
+          diceRolled: false,
+          lastDice: [1, 1],
+          players: [{
+            id: localPlayerId,
+            name: nameInput,
+            money: 1500,
+            position: 0,
+            inJail: false,
+            avatar: AVATARS[0]
+          }],
+          ownership: {},
+          logs: [`🎮 Pokój ${roomCode} utworzony przez ${nameInput}.`],
+          activeTrade: null
+        };
+        await pushRoomState();
+      } else {
+        // Dołącz do istniejącego pokoju
+        if (snap && snap.exists()) {
+          gameState = snap.data();
+        } else if (existingRoomData) {
+          gameState = JSON.parse(existingRoomData);
+        }
+
+        const existingPlayer = gameState.players.find(p => p.id === localPlayerId || p.name === nameInput);
+        if (!existingPlayer) {
+          if (gameState.players.length >= 4) {
+            alert("Pokój jest pełny (max 4 graczy)!");
+            return;
+          }
+          if (gameState.status === 'playing') {
+            alert("Gra w tym pokoju już trwa!");
+            return;
+          }
+
+          const avatarIndex = gameState.players.length % AVATARS.length;
+          gameState.players.push({
+            id: localPlayerId,
+            name: nameInput,
+            money: 1500,
+            position: 0,
+            inJail: false,
+            avatar: AVATARS[avatarIndex]
+          });
+          gameState.logs.push(`👋 ${nameInput} dołączył do pokoju.`);
+          await pushRoomState();
+        }
+      }
+
+      // Listen for updates in real-time
+      listenToRoom();
+
+      document.getElementById('lobby-waiting-area').classList.remove('hidden');
+      renderGameState();
+    }
+
+    function listenToRoom() {
+      if (unsubscribeRoom) unsubscribeRoom();
+
+      if (roomDocRef && db) {
+        unsubscribeRoom = onSnapshot(roomDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+            gameState = docSnap.data();
+            renderGameState();
+          }
+        }, (err) => console.log("Odsłuch Firebase opcjonalny:", err));
+      }
+
+      // Polling fallback to guarantee state synchronization
+      setInterval(() => {
+        const localData = localStorage.getItem(`monopoly_room_${roomCode}`);
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          if (JSON.stringify(parsed) !== JSON.stringify(gameState)) {
+            gameState = parsed;
+            renderGameState();
+          }
+        }
+      }, 1000);
+    }
           },
           fontFamily: {
             sans: ['Montserrat', 'sans-serif'],
